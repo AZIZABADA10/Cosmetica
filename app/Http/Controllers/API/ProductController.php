@@ -16,13 +16,12 @@ class ProductController extends Controller
     {
         $this->productDAO = $productDAO;
     }
- 
+
     public function index()
     {
         return response()->json($this->productDAO->getAll(), 200);
     }
 
- 
     public function store(Request $request)
     {
         $request->validate([
