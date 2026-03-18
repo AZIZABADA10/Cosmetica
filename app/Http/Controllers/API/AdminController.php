@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
+    /**
+     * Display a listing of all users.
+     */
     public function getAllUsers()
     {
         $users = User::all();
