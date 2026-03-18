@@ -14,36 +14,35 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 class AuthController extends Controller
 {
 
+    public function register(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
 
-public function register(Request $request)
-{
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'email' => 'required|string|email|max:255|unique:users',
-        'password' => 'required|string|min:8|confirmed',
-    ]);
+        $dto = RegisterDTO::fromRequest($request);
+        $roleId = User::count() === 0 ? 1 : 2;
 
-    $dto = RegisterDTO::fromRequest($request);
-    $roleId = User::count() === 0 ? 1 : 2;
+        $user = User::create([
+            'name' => $dto->name,
+            'email' => $dto->email,
+            'password' => Hash::make($dto->password),
+            'role_id' => $roleId,
+        ]);
 
-    $user = User::create([
-        'name' => $dto->name,
-        'email' => $dto->email,
-        'password' => Hash::make($dto->password),
-        'role_id' => $roleId,
-    ]);
+        $token = JWTAuth::fromUser($user);
 
-     $token = JWTAuth::fromUser($user);
+        return response()->json([
+            'message' => 'Utilisateur créé avec succès',
+            'access_token' => $token,
+            'token_type' => 'bearer',
+            'user' => $user
+        ], 201);
+    }
 
-    return response()->json([
-        'message' => 'Utilisateur créé avec succès',
-        'access_token' => $token,
-        'token_type' => 'bearer',
-        'user' => $user
-    ], 201);
-}
-
-     public function login(Request $request)
+    public function login(Request $request)
     {
         $request->validate([
             'email' => 'required|string|email',
@@ -67,7 +66,7 @@ public function register(Request $request)
         ]);
     }
 
-     public function logout(Request $request)
+    public function logout(Request $request)
     {
          $request->user()->currentAccessToken()->delete();
 
