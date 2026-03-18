@@ -26,7 +26,7 @@ class CategoryController extends Controller
         $request->validate([
         'name' => 'required|string|max:255|unique:categories,name',
         'description' => 'nullable|string'
-    ]);
+        ]);
 
         $dto = CategoryDTO::fromRequest($request);
         $category = $this->categoryDAO->create($dto);
@@ -34,7 +34,7 @@ class CategoryController extends Controller
         return response()->json([
         'message' => 'Catégorie créée avec succès.',
         'data' => $category
-    ], 201);
+        ], 201);
     }
 
      public function show($id)
