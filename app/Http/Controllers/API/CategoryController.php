@@ -8,13 +8,6 @@ use App\DTOs\CategoryDTO;
 
 class CategoryController extends Controller
 {
-    private CategoryDAO $categoryDAO;
-
-     public function __construct(CategoryDAO $categoryDAO)
-    {
-        $this->categoryDAO = $categoryDAO;
-    }
-
      public function index()
     {
         $categories = $this->categoryDAO->getAll();
