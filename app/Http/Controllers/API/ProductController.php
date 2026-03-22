@@ -3,102 +3,58 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\DAOs\ProductDAO;
-use App\DTOs\ProductDTO;
-use App\Models\Product;
+use App\Http\Requests\Product\ProductRequest;
+use App\Services\ProductService;
+use App\Http\Traits\JsonResponseTrait;
+use Illuminate\Http\JsonResponse;
 
 class ProductController extends Controller
 {
-    private ProductDAO $productDAO;
+    use JsonResponseTrait;
 
-    public function __construct(ProductDAO $productDAO)
+    private ProductService $productService;
+
+    public function __construct(ProductService $productService)
     {
-        $this->productDAO = $productDAO;
+        $this->productService = $productService;
     }
 
-    public function index()
+    public function index(): JsonResponse
     {
-        return response()->json($this->productDAO->getAll(), 200);
+        $products = $this->productService->getAllProducts();
+        return $this->successResponse($products);
     }
 
-    public function store(Request $request)
+    public function store(ProductRequest $request): JsonResponse
     {
-        $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'images.*' => 'image|mimes:jpg,jpeg,png|max:2048'
-        ]);
+        $product = $this->productService->createProduct(
+            $request->validated(),
+            $request->file('images') ?? []
+        );
 
-        try {
-            $dto = ProductDTO::fromRequest($request);
-            $product = $this->productDAO->create($dto);
-
-            return response()->json([
-                'message' => 'Produit créé avec succès',
-                'data' => $product
-            ], 201);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage()
-            ], 400);
-        }
+        return $this->successResponse($product, 'Produit créé avec succès', 201);
     }
 
- 
-    public function show($slug)
+    public function show(string $slug): JsonResponse
     {
-        try {
-            $product = $this->productDAO->getBySlug($slug);
-
-            return response()->json($product, 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Produit non trouvé'
-            ], 404);
-        }
+        $product = $this->productService->getProductBySlug($slug);
+        return $this->successResponse($product);
     }
 
-    public function update(Request $request, $id)
+    public function update(ProductRequest $request, int $id): JsonResponse
     {
-        $product = Product::with('images')->findOrFail($id);
+        $product = $this->productService->updateProduct(
+            $id,
+            $request->validated(),
+            $request->file('images') ?? []
+        );
 
-        $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'images.*' => 'image|mimes:jpg,jpeg,png|max:2048'
-        ]);
-
-        try {
-            $dto = ProductDTO::fromRequest($request);
-            $updated = $this->productDAO->update($product, $dto);
-
-            return response()->json([
-                'message' => 'Produit mis à jour avec succès',
-                'data' => $updated
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage()
-            ], 400);
-        }
+        return $this->successResponse($product, 'Produit mis à jour avec succès');
     }
 
-    public function destroy($id)
+    public function destroy(int $id): JsonResponse
     {
-        $product = Product::with('images')->findOrFail($id);
-
-        $this->productDAO->delete($product);
-
-        return response()->json([
-            'message' => 'Produit supprimé avec succès'
-        ], 200);
+        $this->productService->deleteProduct($id);
+        return $this->successResponse(null, 'Produit supprimé avec succès');
     }
 }

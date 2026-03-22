@@ -1,66 +1,51 @@
 <?php
+
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\DAOs\CategoryDAO;
-use App\DTOs\CategoryDTO;
+use App\Http\Requests\Category\CategoryRequest;
+use App\Services\CategoryService;
+use App\Http\Traits\JsonResponseTrait;
+use Illuminate\Http\JsonResponse;
 
 class CategoryController extends Controller
 {
-     public function index()
+    use JsonResponseTrait;
+
+    private CategoryService $categoryService;
+
+    public function __construct(CategoryService $categoryService)
     {
-        $categories = $this->categoryDAO->getAll();
-        return response()->json($categories, 200);
+        $this->categoryService = $categoryService;
     }
 
-    public function store(Request $request)
+    public function index(): JsonResponse
     {
-        $request->validate([
-        'name' => 'required|string|max:255|unique:categories,name',
-        'description' => 'nullable|string'
-        ]);
-
-        $dto = CategoryDTO::fromRequest($request);
-        $category = $this->categoryDAO->create($dto);
-
-        return response()->json([
-        'message' => 'Catégorie créée avec succès.',
-        'data' => $category
-        ], 201);
+        $categories = $this->categoryService->getAllCategories();
+        return $this->successResponse($categories);
     }
 
-     public function show($id)
+    public function store(CategoryRequest $request): JsonResponse
     {
-        $category = $this->categoryDAO->getById($id);
-        return response()->json($category, 200);
+        $category = $this->categoryService->createCategory($request->validated());
+        return $this->successResponse($category, 'Catégorie créée avec succès', 201);
     }
 
-     public function update(Request $request, $id)
+    public function show(int $id): JsonResponse
     {
-         $category = $this->categoryDAO->getById($id);
-
-          $request->validate([
-            'name' => 'required|string|max:255|unique:categories,name,' . $id,
-            'description' => 'nullable|string'
-        ]);
-
-         $dto = CategoryDTO::fromRequest($request);
-        $updatedCategory = $this->categoryDAO->update($category, $dto);
-
-        return response()->json([
-            'message' => 'Catégorie mise à jour avec succès.',
-            'data' => $updatedCategory
-        ], 200);
+        $category = $this->categoryService->getCategoryById($id);
+        return $this->successResponse($category);
     }
 
-     public function destroy($id)
+    public function update(CategoryRequest $request, int $id): JsonResponse
     {
-        $category = $this->categoryDAO->getById($id);
-        $this->categoryDAO->delete($category);
-
-        return response()->json([
-            'message' => 'Catégorie supprimée avec succès.'
-        ], 200);
+        $category = $this->categoryService->updateCategory($id, $request->validated());
+        return $this->successResponse($category, 'Catégorie mise à jour avec succès');
     }
-} 
+
+    public function destroy(int $id): JsonResponse
+    {
+        $this->categoryService->deleteCategory($id);
+        return $this->successResponse(null, 'Catégorie supprimée avec succès');
+    }
+}

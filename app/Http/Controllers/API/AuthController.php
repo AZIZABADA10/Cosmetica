@@ -3,75 +3,45 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
-use App\Models\Role;
-use App\DTOs\RegisterDTO;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
-use Tymon\JWTAuth\Facades\JWTAuth;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Services\AuthService;
+use App\Http\Traits\JsonResponseTrait;
+use Illuminate\Http\JsonResponse;
 
 class AuthController extends Controller
 {
+    use JsonResponseTrait;
 
-    public function register(Request $request)
+    private AuthService $authService;
+
+    public function __construct(AuthService $authService)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        $dto = RegisterDTO::fromRequest($request);
-        $roleId = User::count() === 0 ? 1 : 2;
-
-        $user = User::create([
-            'name' => $dto->name,
-            'email' => $dto->email,
-            'password' => Hash::make($dto->password),
-            'role_id' => $roleId,
-        ]);
-
-        $token = JWTAuth::fromUser($user);
-
-        return response()->json([
-            'message' => 'Utilisateur créé avec succès',
-            'access_token' => $token,
-            'token_type' => 'bearer',
-            'user' => $user
-        ], 201);
+        $this->authService = $authService;
     }
 
-    public function login(Request $request)
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $request->validate([
-            'email' => 'required|string|email',
-            'password' => 'required|string',
-        ]);
+        $result = $this->authService->register($request->validated());
 
-        $user = User::where('email', $request->email)->first();
+        return $this->successResponse($result, 'Utilisateur créé avec succès', 201);
+    }
 
-         if (!$user || !Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['Les identifiants fournis sont incorrects.'],
-            ]);
+    public function login(LoginRequest $request): JsonResponse
+    {
+        $result = $this->authService->login($request->validated());
+
+        if (!$result) {
+            return $this->errorResponse('Les identifiants fournis sont incorrects.', 401);
         }
 
-         $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'message' => 'Connexion réussie',
-            'access_token' => $token,
-            'user' => $user
-        ]);
+        return $this->successResponse($result, 'Connexion réussie');
     }
 
-    public function logout(Request $request)
+    public function logout(): JsonResponse
     {
-         $request->user()->currentAccessToken()->delete();
+        $this->authService->logout();
 
-        return response()->json([
-            'message' => 'Déconnexion réussie'
-        ]);
+        return $this->successResponse(null, 'Déconnexion réussie');
     }
 }
