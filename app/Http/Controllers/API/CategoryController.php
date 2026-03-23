@@ -21,7 +21,7 @@ class CategoryController extends Controller
 
     public function index(): JsonResponse
     {
-        $categories = $this->categoryService->getAllCategories();
+        $categories = \App\Models\Category::withProductCount()->paginate(10);
         return $this->successResponse($categories);
     }
 
