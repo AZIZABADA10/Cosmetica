@@ -7,6 +7,7 @@ use App\Http\Requests\Product\ProductRequest;
 use App\Services\ProductService;
 use App\Http\Traits\JsonResponseTrait;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
@@ -19,9 +20,19 @@ class ProductController extends Controller
         $this->productService = $productService;
     }
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $products = $this->productService->getAllProducts();
+        $query = \App\Models\Product::query();
+
+        if ($request->has('category_id')) {
+            $query->inCategory($request->category_id);
+        }
+
+        if ($request->has('max_price')) {
+            $query->priceBelow($request->max_price);
+        }
+
+        $products = $query->with('category')->paginate(10);
         return $this->successResponse($products);
     }
 

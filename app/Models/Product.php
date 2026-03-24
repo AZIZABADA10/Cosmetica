@@ -18,6 +18,16 @@ class Product extends Model {
         'price'
         ];
 
+    public function scopePriceBelow($query, $price)
+    {
+        return $query->where('price', '<=', $price);
+    }
+
+    public function scopeInCategory($query, $categoryId)
+    {
+        return $query->where('category_id', $categoryId);
+    }
+
     public function getSlugOptions() : SlugOptions 
     {
         return SlugOptions::create()->generateSlugsFrom('name')->saveSlugsTo('slug');
