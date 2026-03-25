@@ -27,7 +27,7 @@ class AuthService extends BaseService
             'role_id' => $roleId,
         ]);
 
-        $token = JWTAuth::fromUser($user);
+        $token = auth('api')->login($user);
 
         return [
             'user' => $user->load('role'),
@@ -38,12 +38,12 @@ class AuthService extends BaseService
 
     public function login(array $credentials): ?array
     {
-        if (!$token = auth()->attempt($credentials)) {
+        if (!$token = auth('api')->attempt($credentials)) {
             return null;
         }
 
         return [
-            'user' => auth()->user()->load('role'),
+            'user' => auth('api')->user()->load('role'),
             'access_token' => $token,
             'token_type' => 'bearer'
         ];
