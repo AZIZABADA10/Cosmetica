@@ -82,6 +82,11 @@ class OrderService extends BaseService
         return $order;
     }
 
+    public function calculateShipping(float $totalPrice): float
+    {
+        return $totalPrice > 50 ? 0 : 5.99;
+    }
+
     public function cancelOrder(int $id, int $userId): Order
     {
         $order = $this->getOrderById($id);
