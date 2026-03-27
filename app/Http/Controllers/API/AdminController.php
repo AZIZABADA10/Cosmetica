@@ -5,34 +5,46 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Http\Request;
+use App\Services\AdminService;
+use App\Http\Traits\JsonResponseTrait;
+use Illuminate\Http\JsonResponse;
 
 class AdminController extends Controller
 {
-    /**
-     * Display a listing of all users.
-     */
-    public function getAllUsers()
+    use JsonResponseTrait;
+
+    private AdminService $adminService;
+
+    public function __construct(AdminService $adminService)
     {
-        $users = User::all();
-        return response()->json(['message' =>'tout les utilisateurs','users'=> $users],200);
+        $this->adminService = $adminService;
     }
 
-    public function getUserById($id)
+    public function getAllUsers(): JsonResponse
     {
-        $user = User::findOrFail($id);
-        return response()->json([$user],200);
+        $users = User::with('role')->get();
+        return $this->successResponse($users, 'Tous les utilisateurs');
     }
 
-    public function renderUserEmployee($id)
+    public function getUserById($id): JsonResponse
+    {
+        $user = User::with('role')->findOrFail($id);
+        return $this->successResponse($user);
+    }
+
+    public function renderUserEmployee($id): JsonResponse
     {
         $user = User::findOrFail($id);
-        $role = Role::where('name','employe')->firstOrFail();
+        $role = Role::where('name', 'employe')->firstOrFail();
         $user->role_id = $role->id;
         $user->save();
-        return response()->json([
-            'message'=> 'le role a été changer avec succes',
-            'role'=>$user->load('role')
-            ]);
+
+        return $this->successResponse($user->load('role'), 'Le rôle a été changé avec succès');
+    }
+
+    public function getStats(): JsonResponse
+    {
+        $stats = $this->adminService->getSalesStats();
+        return $this->successResponse($stats, 'Statistiques de vente');
     }
 }
